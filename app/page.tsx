@@ -22,7 +22,7 @@ export default function HomePage() {
   const channelRef = useRef<any>(null);
   const supabase = createSupabaseBrowserClient();
 
-  // 1. Authentication Check
+ 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -44,13 +44,13 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Realtime Listener (Syncs across tabs)
+  
   useEffect(() => {
     if (!user) return;
 
     const channelName = `bookmarks-user-${user.id}`;
     
-    // Cleanup previous channel if exists
+    
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
     channelRef.current = supabase
@@ -66,7 +66,7 @@ export default function HomePage() {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             setBookmarks(prev => {
-              // If we already have this ID (from our optimistic update), ignore it
+              
               if (prev.some(b => b.id === payload.new.id)) return prev;
               return [payload.new, ...prev];
             });
@@ -90,12 +90,12 @@ export default function HomePage() {
     if (data) setBookmarks(data);
   };
 
-  // 3. FIXED: True Optimistic Add
+  
   const addBookmark = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newUrl || !newTitle) return;
 
-    // A. Generate fake data for immediate display
+   
     const tempId = crypto.randomUUID(); 
     const optimisticBookmark = {
       id: tempId,
@@ -105,12 +105,12 @@ export default function HomePage() {
       created_at: new Date().toISOString(),
     };
 
-    // B. UPDATE SCREEN INSTANTLY (Don't wait for await!)
+    
     setBookmarks(prev => [optimisticBookmark, ...prev]);
     setNewUrl('');
     setNewTitle('');
 
-    // C. Send to Database in background
+    
     const { data, error } = await supabase
       .from('bookmarks')
       .insert({
@@ -123,25 +123,25 @@ export default function HomePage() {
 
     if (error) {
       console.error("Error adding bookmark:", error);
-      // Rollback: Remove the temp item if it failed
+      
       setBookmarks(prev => prev.filter(b => b.id !== tempId));
       alert("Failed to save bookmark.");
     } else {
-      // Success: Swap the temporary ID with the real ID from the database
+      
       setBookmarks(prev => prev.map(b => (b.id === tempId ? data : b)));
     }
   };
 
   const deleteBookmark = async (id: string) => {
-    // 1. Immediate UI update
+    
     setBookmarks(prev => prev.filter(b => b.id !== id));
 
-    // 2. Perform server deletion
+    
     const { error } = await supabase.from('bookmarks').delete().eq('id', id);
 
     if (error) {
         console.error("Error deleting", error);
-        // Optional: fetchBookmarks(user.id) to restore if needed
+        
     }
   };
 
