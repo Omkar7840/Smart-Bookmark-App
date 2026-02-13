@@ -3,17 +3,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
 import { 
-  BookOpen, 
   Bookmark, 
   Plus, 
   Trash2, 
   LogOut, 
   Search, 
-  ExternalLink,
-  Globe,
-  Clock,
-  Command,
-  ShieldCheck
+  ExternalLink, 
+  Globe, 
+  Clock
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -49,8 +46,10 @@ export default function HomePage() {
   useEffect(() => {
     if (!user) return;
 
+    const channelName = `bookmarks-user-${user.id}`;
+
     channelRef.current = supabase
-      .channel('bookmarks')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { 
@@ -61,7 +60,10 @@ export default function HomePage() {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setBookmarks(prev => [payload.new, ...prev]);
+            setBookmarks(prev => {
+              if (prev.some(b => b.id === payload.new.id)) return prev;
+              return [payload.new, ...prev];
+            });
           } else if (payload.eventType === 'DELETE') {
             setBookmarks(prev => prev.filter(b => b.id !== payload.old.id));
           }
@@ -89,17 +91,42 @@ export default function HomePage() {
     e.preventDefault();
     if (!user || !newUrl || !newTitle) return;
 
-    await supabase.from('bookmarks').insert({
-      user_id: user.id,
-      url: newUrl,
-      title: newTitle,
-    });
-    setNewUrl('');
-    setNewTitle('');
+
+    const tempId = Math.random().toString(); 
+    
+   
+    const { data, error } = await supabase
+      .from('bookmarks')
+      .insert({
+        user_id: user.id,
+        url: newUrl,
+        title: newTitle,
+      })
+      .select() 
+      .single();
+
+    if (error) {
+      console.error("Error adding bookmark:", error);
+      return; 
+    }
+
+    
+    if (data) {
+        setBookmarks(prev => [data, ...prev]);
+        setNewUrl('');
+        setNewTitle('');
+    }
   };
 
   const deleteBookmark = async (id: string) => {
-    await supabase.from('bookmarks').delete().eq('id', id);
+ 
+    setBookmarks(prev => prev.filter(b => b.id !== id));
+
+    const { error } = await supabase.from('bookmarks').delete().eq('id', id);
+
+    if (error) {
+        console.error("Error deleting", error);
+    }
   };
 
   const filteredBookmarks = bookmarks.filter(bookmark => 
@@ -115,40 +142,34 @@ export default function HomePage() {
     await supabase.auth.signOut();
   };
 
-if (!user) {
-  return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-  
-
-      <div className="relative w-full max-w-md">
-        <div className="bg-white rounded-4xl p-8 md:p-12 shadow-2xl border border-white/10">
-          
-
-          <div className="text-center space-y-3 mb-10">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Sign in
-            </h1>
-            <p className="text-slate-500 text-[15px] leading-relaxed px-2">
-              Access your personal library of bookmarks in one secure workspace.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <button
-              onClick={signIn}
-              className="group relative w-full flex items-center justify-center gap-3 bg-white text-slate-700 py-3.5 px-4 rounded-2xl font-semibold border border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2">
-              Continue with Google
-            </button>
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="relative w-full max-w-md">
+          <div className="bg-white rounded-4xl p-8 md:p-12 shadow-2xl border border-white/10">
+            <div className="text-center space-y-3 mb-10">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                Sign in
+              </h1>
+              <p className="text-slate-500 text-[15px] leading-relaxed px-2">
+                Access your personal library of bookmarks in one secure workspace.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <button
+                onClick={signIn}
+                className="group relative w-full flex items-center justify-center gap-3 bg-white text-slate-700 py-3.5 px-4 rounded-2xl font-semibold border border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2">
+                Continue with Google
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 selection:bg-indigo-100">
-  
       <nav className="border-b border-zinc-200 bg-white/70 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
