@@ -20,9 +20,10 @@ Backend: Supabase (Auth, Postgres, Realtime)
 Deployment: Vercel
 
 ##  **Screenshots**
-![Dashboard](https://via.placeholder.com/1200x600/1e293b/ffffff?text=Smart+Bookmark+Dashboard)
-![Add Bookmark](https://via.placeholder.com/1200x400/1e293b/ffffff?text=Add+Bookmark+Form)
-![Realtime](https://via.placeholder.com/1200x600/1e293b/ffffff?text=Realtime+Sync)
+<img width="1920" height="1080" alt="Screenshot 2026-02-13 160121" src="https://github.com/user-attachments/assets/f5b0c684-d063-4baa-b2bc-11c2b597f752" />
+<img width="1920" height="1080" alt="Screenshot 2026-02-13 160043" src="https://github.com/user-attachments/assets/d3c08795-6e43-4e08-969c-6d38ffba8440" />
+<img width="1919" height="968" alt="Screenshot 2026-02-13 155545" src="https://github.com/user-attachments/assets/d8009503-682b-42ad-8f0b-36cbadda1262" />
+
 
 The Challenge
 The major technical problem I faced was getting the bookmarks update immediately after either adding or removig.
