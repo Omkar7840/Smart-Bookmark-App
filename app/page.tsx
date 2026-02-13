@@ -22,6 +22,7 @@ export default function HomePage() {
   const channelRef = useRef<any>(null);
   const supabase = createSupabaseBrowserClient();
 
+  // 1. Authentication Check
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -43,10 +44,14 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // 2. Realtime Listener (Syncs across tabs)
   useEffect(() => {
     if (!user) return;
 
     const channelName = `bookmarks-user-${user.id}`;
+    
+    // Cleanup previous channel if exists
+    if (channelRef.current) supabase.removeChannel(channelRef.current);
 
     channelRef.current = supabase
       .channel(channelName)
@@ -61,6 +66,7 @@ export default function HomePage() {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             setBookmarks(prev => {
+              // If we already have this ID (from our optimistic update), ignore it
               if (prev.some(b => b.id === payload.new.id)) return prev;
               return [payload.new, ...prev];
             });
@@ -72,10 +78,7 @@ export default function HomePage() {
       .subscribe();
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
   }, [user]);
 
@@ -84,48 +87,61 @@ export default function HomePage() {
       .from('bookmarks')
       .select('*')
       .order('created_at', { ascending: false });
-    setBookmarks(data || []);
+    if (data) setBookmarks(data);
   };
 
+  // 3. FIXED: True Optimistic Add
   const addBookmark = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newUrl || !newTitle) return;
 
+    // A. Generate fake data for immediate display
+    const tempId = crypto.randomUUID(); 
+    const optimisticBookmark = {
+      id: tempId,
+      user_id: user.id,
+      title: newTitle,
+      url: newUrl,
+      created_at: new Date().toISOString(),
+    };
 
-    const tempId = Math.random().toString(); 
-    
-   
+    // B. UPDATE SCREEN INSTANTLY (Don't wait for await!)
+    setBookmarks(prev => [optimisticBookmark, ...prev]);
+    setNewUrl('');
+    setNewTitle('');
+
+    // C. Send to Database in background
     const { data, error } = await supabase
       .from('bookmarks')
       .insert({
         user_id: user.id,
-        url: newUrl,
-        title: newTitle,
+        url: optimisticBookmark.url,
+        title: optimisticBookmark.title,
       })
-      .select() 
+      .select()
       .single();
 
     if (error) {
       console.error("Error adding bookmark:", error);
-      return; 
-    }
-
-    
-    if (data) {
-        setBookmarks(prev => [data, ...prev]);
-        setNewUrl('');
-        setNewTitle('');
+      // Rollback: Remove the temp item if it failed
+      setBookmarks(prev => prev.filter(b => b.id !== tempId));
+      alert("Failed to save bookmark.");
+    } else {
+      // Success: Swap the temporary ID with the real ID from the database
+      setBookmarks(prev => prev.map(b => (b.id === tempId ? data : b)));
     }
   };
 
   const deleteBookmark = async (id: string) => {
- 
+    // 1. Immediate UI update
     setBookmarks(prev => prev.filter(b => b.id !== id));
 
+    // 2. Perform server deletion
     const { error } = await supabase.from('bookmarks').delete().eq('id', id);
 
     if (error) {
         console.error("Error deleting", error);
+        // Optional: fetchBookmarks(user.id) to restore if needed
     }
   };
 
@@ -146,22 +162,21 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="relative w-full max-w-md">
-          <div className="bg-white rounded-4xl p-8 md:p-12 shadow-2xl border border-white/10">
+          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl">
             <div className="text-center space-y-3 mb-10">
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                 Sign in
               </h1>
-              <p className="text-slate-500 text-[15px] leading-relaxed px-2">
+              <p className="text-slate-500 text-[15px] px-2">
                 Access your personal library of bookmarks in one secure workspace.
               </p>
             </div>
-            <div className="space-y-4">
-              <button
-                onClick={signIn}
-                className="group relative w-full flex items-center justify-center gap-3 bg-white text-slate-700 py-3.5 px-4 rounded-2xl font-semibold border border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2">
-                Continue with Google
-              </button>
-            </div>
+            <button
+              onClick={signIn}
+              className="w-full bg-white text-slate-700 py-3.5 rounded-2xl font-semibold border border-slate-200 hover:bg-slate-50 transition-all"
+            >
+              Continue with Google
+            </button>
           </div>
         </div>
       </div>
@@ -178,13 +193,13 @@ export default function HomePage() {
 
           <div className="flex-1 max-w-md mx-8 hidden md:block">
             <div className="relative group">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-indigo-500 transition-colors" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
                 placeholder="Find a bookmark..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-zinc-100 border-none rounded-full text-sm focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                className="w-full pl-10 pr-4 py-2 bg-zinc-100 border-none rounded-full text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
               />
             </div>
           </div>
@@ -215,7 +230,7 @@ export default function HomePage() {
                     placeholder="E.g. Design Inspiration"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none"
                     required
                   />
                 </div>
@@ -226,7 +241,7 @@ export default function HomePage() {
                     placeholder="https://..."
                     value={newUrl}
                     onChange={(e) => setNewUrl(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none"
                     required
                   />
                 </div>
