@@ -2,8 +2,10 @@
 
 A **modern, realtime bookmark manager** built with **Next.js 14 (App Router)**, **Supabase** , and **Tailwind CSS**.
 
-##  **Live**
-[![Live Demo](https://smart-bookmark-app-swart.vercel.app/)](https://smart-bookmark-app-swart.vercel.app/)
+## **Live**
+
+[Live Demo](https://smart-bookmark-app-swart.vercel.app/)
+
 
 ##  **Features**
 -  **Secured login using Google OAuth** 
@@ -13,9 +15,9 @@ A **modern, realtime bookmark manager** built with **Next.js 14 (App Router)**, 
 -  **Production Deployed** 
 
 ##  **Tech Stack**
-Frontend: Next.js 14 (App Router) + Tailwind CSS
-Backend: Supabase (Auth, Postgres, Realtime)
-Deployment: Vercel
+- **Frontend: Next.js 14 (App Router) + Tailwind CSS**
+- **Backend: Supabase (Auth, Postgres, Realtime)**
+- **Deployment: Vercel**
 
 ##  **Screenshots**
 <img width="1919" height="968" alt="Screenshot 2026-02-13 155545" src="https://github.com/user-attachments/assets/d8009503-682b-42ad-8f0b-36cbadda1262" />
@@ -25,7 +27,7 @@ Deployment: Vercel
 
 # The Challenge
 
-The major technical problem I faced was getting the bookmarks update immediately after either adding or removig.
+The major technical problem I faced was getting the bookmarks update immediately after either adding or removing.
 
 ---
 
