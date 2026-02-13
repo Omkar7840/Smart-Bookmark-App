@@ -37,7 +37,7 @@ Whenever I added or removed a bookmark, the changes wouldn't show up on the scre
 
 ---
 
-# Analysis: Why was this happening?
+# Analysis
 
 In my initial implementation, I was relying entirely on Supabase Realtime to make my UI updates.
 
@@ -45,7 +45,7 @@ When a user submitted a new bookmark, my code was sending the data to the databa
 
 ---
 
-# My Previous Approach (The Flaw)
+# My Previous Approach
 
 **TypeScript**
 
