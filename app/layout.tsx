@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { ReactNode } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Vault OS | Smart Bookmarks',
+  title: 'Smart Bookmarks',
   description: 'Professional-grade link management',
 };
 
